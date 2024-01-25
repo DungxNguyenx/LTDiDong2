@@ -1,76 +1,224 @@
 import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import Modal from "react-native-modal";
 
-function ProductDetail({ route }) {
-  const navigation = useNavigation();
-  const { name, url, price, description } = route.params;
-  const [count, setCount] = useState(1);
+const ProductDetail = ({ route, navigation }) => {
+	const { item, cartItems, setCartItems } = route.params;
+	const [quantity, setQuantity] = useState(1);
+	const [selectedSize, setSelectedSize] = useState(item.size);
+	const [isModalVisible, setModalVisible] = useState(false);
 
-  const addToCart = (item) => {
-    const newItem = {
-      name,
-      url,
-      price,
-      quantity: count,
-    };
-    global.mycart.push(newItem);
-    setCount(1);
-    navigation.navigate("Cart");
-  };
+	const handleQuantityDecrement = () => {
+		setQuantity((prevQuantity) =>
+			prevQuantity > 1 ? prevQuantity - 1 : 1
+		);
+	};
 
-  return (
-    <ScrollView>
-      <View style={{ flex: 30, marginHorizontal: 10 }}>
-        <Image
-          source={{ uri: url }}
-          style={{ height: 200, width: "100%", resizeMode: "center" }}
-        />
-        <Text>Name: {name}</Text>
-        <Text>Price: ${price}</Text>
-        <Text>description:{description}</Text>
-      </View>
+	const handleQuantityIncrement = () => {
+		setQuantity((prevQuantity) => prevQuantity + 1);
+	};
 
-      <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-        <TouchableOpacity
-          onPress={() => addToCart(item)}
-          style={{
-            backgroundColor: "gray",
-            justifyContent: "center",
-            alignItems: "center",
-            height: 20,
-            marginVertical: 10,
-          }}
-        >
-          <Text style={{ color: "white" }}>Add to cart</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Home")}
-          style={{
-            backgroundColor: "blue",
-            justifyContent: "center",
-            alignItems: "center",
-            height: 20,
-            marginVertical: 10,
-          }}
-        >
-          <Text style={{ color: "white" }}>View Content</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => addToCart}
-          style={{
-            backgroundColor: "red",
-            justifyContent: "center",
-            alignItems: "center",
-            height: 20,
-            marginVertical: 10,
-          }}
-        >
-          <Text style={{ color: "white" }}>View Cart</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
-}
+	const handleAddToCart = () => {
+		const existingItem = cartItems.find(
+			(cartItem) => cartItem.id === item.id
+		);
+
+		if (existingItem) {
+			setCartItems((prevItems) =>
+				prevItems.map((cartItem) =>
+					cartItem.id === item.id
+						? {
+								...cartItem,
+								quantity: cartItem.quantity + quantity,
+						  }
+						: cartItem
+				)
+			);
+		} else {
+			// Thêm thông tin size vào item trước khi thêm vào giỏ hàng
+			const newItem = { ...item, quantity: quantity, size: item.size };
+			setCartItems((prevItems) => [...prevItems, newItem]);
+		}
+
+		// Hiển thị thông báo modal
+		toggleModal();
+		navigation.goBack();
+	};
+	const toggleModal = () => {
+		setModalVisible(!isModalVisible);
+	};
+
+	return (
+		<View style={styles.chitiet}>
+			<Image source={{ uri: item.image }} style={styles.image} />
+			<Text style={styles.itemText}>{item.name}</Text>
+			<Text style={styles.itemTextP}>{item.price}$</Text>
+			<Text style={styles.itemTextD}>{item.desc}</Text>
+			<View style={styles.edit}>
+				<TouchableOpacity
+					style={styles.add}
+					onPress={handleQuantityIncrement}>
+					<Text style={{color:"white"}}>+</Text>
+				</TouchableOpacity>
+				<Text style={styles.itemQuantity}>{quantity}</Text>
+				<TouchableOpacity
+					style={styles.remove}
+					onPress={handleQuantityDecrement}>
+					<Text style={{color:"white"}}>-</Text>
+				</TouchableOpacity>
+			</View>
+			<TouchableOpacity
+				style={styles.addToCartButton}
+				onPress={handleAddToCart}>
+				<Text style={styles.addToCartBtnText}>Add to Cart</Text>
+			</TouchableOpacity>
+			<Modal isVisible={isModalVisible}>
+				<View style={styles.modalContent}>
+					<Text style={styles.modalText}>
+          The product has been added to cart
+					</Text>
+					<TouchableOpacity onPress={toggleModal}></TouchableOpacity>
+				</View>
+			</Modal>
+			<Text style={styles.cartItemsText}>
+				Items in Cart: {cartItems ? cartItems.length : 0}
+			</Text>
+			{cartItems &&
+				cartItems.map((cartItem) => (
+					<View key={cartItem.id}>
+					</View>
+					// Hiện thông tin sản phẩm đã có trong giỏ
+				))}
+		</View>
+	);
+};
+
+const styles = StyleSheet.create({
+	chitiet: {
+		flex: 1,
+		alignItems: "center",
+		backgroundColor: "white",
+		justifyContent:"center"
+	},
+	image: {
+		width: 200,
+		height: 200,
+		resizeMode: "cover",
+	},
+	edit: {
+		display: "flex",
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	add:{
+		backgroundColor: "black",
+		padding: 10,
+		borderRadius: 50,
+	},
+	remove:{
+		backgroundColor: "black",
+		padding: 10,
+		borderRadius: 50,
+	},
+	itemText: {
+		fontSize: 18,
+		fontWeight: "bold",
+		marginBottom: 10,
+		color: "#636363",
+	},
+	itemTextP: {
+		fontSize: 18,
+		marginBottom: 10,
+		color: "#636363",
+	},
+	itemTextD: {
+		fontSize: 18,
+		marginBottom: 10,
+		color: "#636363",
+	},
+	addToCartButton: {
+		width: 150,
+		marginTop: 10,
+		backgroundColor: "black",
+		padding: 10,
+		borderRadius: 20,
+		marginBottom:20,
+	},
+	addToCartBtnText: {
+		textAlign: "center",
+		color: "white",
+		
+	},
+	itemQuantity: {
+		//quanti
+		fontSize: 16,
+		margin:10
+	},
+	cartItemsText: {
+		fontSize: 16,
+		marginBottom: 10,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderWidth: 1,
+		borderRadius: 5,
+		marginRight: 5,
+		backgroundColor: "#fff",
+	},
+	cartItemImage: {
+		width: 50,
+		height: 50,
+		resizeMode: "cover",
+		marginBottom: 5,
+	},
+	sizeButton: {
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderWidth: 1,
+		borderRadius: 5,
+		marginRight: 5,
+		backgroundColor: "#fff",
+	},
+	row: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 5,
+	},
+	itemSize: {
+		fontSize: 14,
+		marginRight: 10,
+	},
+
+	selectedSize: {
+		fontSize: 16,
+		marginBottom: 10,
+		fontWeight: "bold",
+	},
+	modalContent: {
+		backgroundColor: "white",
+		padding: 20,
+		justifyContent: "center",
+		alignItems: "center",
+		borderRadius: 8,
+		borderColor: "rgba(0, 0, 0, 0.1)",
+		elevation: 5, // Độ nâng của modal
+	},
+	modalText: {
+		fontSize: 18,
+		marginBottom: 15,
+		textAlign: "center",
+	},
+	closeModalText: {
+		color: "#3498db",
+		fontSize: 16,
+		textAlign: "center",
+	},
+	addToCartButtonText: {
+		color: "#fff",
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 5,
+	},
+});
 
 export default ProductDetail;
